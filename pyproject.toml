@@ -1,0 +1,41 @@
+[project]
+name = "ai-orchestration-platform"
+version = "0.1.0"
+description = "Custom agent runtime with planning, execution, review, and an HTTP orchestration service."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.68",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "python-dotenv>=1.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "httpx>=0.27",
+    "huey>=2.5",
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+]
+
+[tool.setuptools.package-data]
+app = [
+    "observability/pricing_fixtures.json",
+    "observability/RETENTION.md",
+    "evaluation/data/*.json",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*", "examples*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -1,0 +1,103 @@
+# AgentForge single-host deployment: web (nginx) + API + worker + shared SQLite volume.
+#
+# Limits (honest):
+#   - One host only. SQLite + WAL is shared by API and worker on the *same*
+#     Docker volume — not safe across multiple hosts or arbitrary replicas.
+#   - Do not scale `api` or `worker` replicas without a different datastore.
+#   - Shared bearer token = shared-operator / single-workspace auth boundary.
+#
+# Startup (from this directory):
+#   cp .env.example .env   # edit placeholders
+#   docker compose up --build -d
+#
+# Offline demo (fake LLMs, no paid calls) — see docker-compose.offline.yml.
+
+name: agentforge
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: agentforge-api:local
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      ORCHESTRATION_JOBS_DB_PATH: /data/jobs.db
+      ORCHESTRATION_QUEUE_DB_PATH: /data/huey_queue.db
+      ORCHESTRATION_MEMORY_DB_PATH: /data/memory.db
+      ORCHESTRATION_APPROVALS_DB_PATH: /data/approvals.db
+      ORCHESTRATION_ARTIFACT_OUTPUT_ROOT: /data/artifacts
+      ORCHESTRATION_JOBS_IMMEDIATE: "false"
+    volumes:
+      - agentforge-data:/data
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    stop_grace_period: 30s
+
+  worker:
+    image: agentforge-api:local
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    command: ["python", "-m", "app.api.jobs.worker"]
+    env_file:
+      - .env
+    environment:
+      ORCHESTRATION_JOBS_DB_PATH: /data/jobs.db
+      ORCHESTRATION_QUEUE_DB_PATH: /data/huey_queue.db
+      ORCHESTRATION_MEMORY_DB_PATH: /data/memory.db
+      ORCHESTRATION_APPROVALS_DB_PATH: /data/approvals.db
+      ORCHESTRATION_ARTIFACT_OUTPUT_ROOT: /data/artifacts
+      ORCHESTRATION_JOBS_IMMEDIATE: "false"
+      WORKER_HEALTH_PORT: "8090"
+    volumes:
+      - agentforge-data:/data
+    expose:
+      - "8090"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/ready', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+    stop_grace_period: 45s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    image: agentforge-web:local
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  agentforge-data:
+    name: agentforge-data

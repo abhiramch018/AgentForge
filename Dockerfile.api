@@ -1,0 +1,44 @@
+# AgentForge API + worker image (same codebase; different commands).
+# Multi-stage keeps build tools out of the runtime layer where practical.
+
+FROM python:3.13-slim-bookworm AS builder
+
+WORKDIR /build
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+
+FROM python:3.13-slim-bookworm AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    ORCHESTRATION_JOBS_DB_PATH=/data/jobs.db \
+    ORCHESTRATION_QUEUE_DB_PATH=/data/huey_queue.db \
+    ORCHESTRATION_MEMORY_DB_PATH=/data/memory.db \
+    ORCHESTRATION_APPROVALS_DB_PATH=/data/approvals.db \
+    ORCHESTRATION_ARTIFACT_OUTPUT_ROOT=/data/artifacts \
+    WORKER_HEALTH_PORT=8090
+
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app \
+    && mkdir -p /data /app \
+    && chown -R app:app /data /app
+
+COPY --from=builder /opt/venv /opt/venv
+WORKDIR /app
+COPY --chown=app:app app ./app
+COPY --chown=app:app deploy ./deploy
+COPY --chown=app:app demo ./demo
+
+USER app
+EXPOSE 8000 8090
+
+# Default: API. Compose overrides command for the worker.
+CMD ["uvicorn", "app.api.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

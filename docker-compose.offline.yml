@@ -1,0 +1,33 @@
+# OFFLINE DEMO overlay — deterministic fake LLMs (DemoLLM). No paid API calls.
+#
+# Exercises the real API → Huey queue → worker → SQLite persistence → SSE →
+# approval paths. This is not a disconnected mock frontend.
+#
+# Usage:
+#   cp .env.example .env   # ORCHESTRATION_API_TOKEN required; LLM_* unused
+#   docker compose -f docker-compose.yml -f docker-compose.offline.yml up --build -d
+#
+# Open http://127.0.0.1:8080 and connect with the bearer token from .env.
+
+services:
+  api:
+    command:
+      [
+        "uvicorn",
+        "app.api.offline:create_offline_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+      ]
+    environment:
+      ORCHESTRATION_OFFLINE_DEMO: "true"
+      # Live provider keys are intentionally unused in this profile.
+      LLM_API_KEY: "unused-offline-demo"
+
+  worker:
+    command: ["python", "-m", "app.api.jobs.worker", "--offline"]
+    environment:
+      ORCHESTRATION_OFFLINE_DEMO: "true"
+      LLM_API_KEY: "unused-offline-demo"

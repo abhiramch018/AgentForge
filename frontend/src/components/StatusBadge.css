@@ -1,0 +1,48 @@
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.status-queued {
+  background: var(--status-queued-bg);
+  color: var(--status-queued-fg);
+  border-color: var(--status-queued-border);
+}
+
+.status-running {
+  background: var(--status-running-bg);
+  color: var(--status-running-fg);
+  border-color: var(--status-running-border);
+}
+
+.status-succeeded {
+  background: var(--status-ok-bg);
+  color: var(--status-ok-fg);
+  border-color: var(--status-ok-border);
+}
+
+.status-failed {
+  background: var(--status-fail-bg);
+  color: var(--status-fail-fg);
+  border-color: var(--status-fail-border);
+}
+
+.status-interrupted {
+  background: var(--status-warn-bg);
+  color: var(--status-warn-fg);
+  border-color: var(--status-warn-border);
+}
+
+.status-awaiting-approval {
+  background: var(--status-approval-bg);
+  color: var(--status-approval-fg);
+  border-color: var(--status-approval-border);
+}

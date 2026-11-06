@@ -1,0 +1,18 @@
+{
+  "as_of": "2026-01-15",
+  "currency": "USD",
+  "unit": "usd_per_1m_tokens",
+  "provenance": "Offline fixture for AgentForge demos/tests. Not a live provider quote. Update deliberately when revising estimates.",
+  "models": {
+    "fake-model": {
+      "input": 0.10,
+      "output": 0.40,
+      "billing": "standard_input_output_tokens"
+    },
+    "gpt-4o-mini": {
+      "input": 0.15,
+      "output": 0.60,
+      "billing": "standard_input_output_tokens"
+    }
+  }
+}
